@@ -1,9 +1,38 @@
 import datetime as dt
 
-from typing import List, Union, Set
+from collections import defaultdict
+from typing import List, Union, Set, Dict, DefaultDict
 
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.protocol.admin import Response
+from kafka.structs import PartitionMetadata
+
+
+def get_partition_metadata(
+    admin_client: KafkaAdminClient,
+) -> Dict[str, Dict[int, PartitionMetadata]]:
+
+    return admin_client._client.cluster._partitions
+
+
+def sort_partitions_by_leader_node(
+    admin_client: KafkaAdminClient,
+) -> Dict[str, Dict[int, List[int]]]:
+    """ This method produces a dictionary which maps from topic string to node id to a
+    list of partition ids for those partitions whose lead replica is on that node.
+    """
+
+    partition_metadata: PartitionMetadata = get_partition_metadata(admin_client)
+
+    tnp: Dict[str, Dict[int, List[int]]] = {}
+
+    for topic, partition_dict in partition_metadata.items():
+        node_partiton_leader: DefaultDict[int, List[int]] = defaultdict(list)
+        for partition, pmd in partition_dict.items():
+            node_partiton_leader[pmd.leader].append(partition)
+        tnp[topic] = dict(node_partiton_leader)
+
+    return tnp
 
 
 def get_all_topics(admin_client: KafkaAdminClient) -> List[str]:

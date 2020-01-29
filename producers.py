@@ -1,29 +1,68 @@
 import uuid
 import time
+import random
 
-from typing import List
+from typing import List, Union, Dict
 
 from kafka import KafkaProducer
+from kafka.admin import KafkaAdminClient
 from kafka.errors import KafkaTimeoutError
 
+from topics import sort_partitions_by_leader_node
 
-def send_messages(bootstrap_servers: str, topics: List[str], interval: float):
 
-    producer = KafkaProducer(bootstrap_servers=bootstrap_servers, acks=0, retries=0)
+def send_messages(
+    bootstrap_servers: Union[str, List[str]], topics: List[str], interval: float
+):
+
+    admin_client: KafkaAdminClient = KafkaAdminClient(
+        bootstrap_servers=bootstrap_servers, client_id="topic-loader-admin"
+    )
+
+    # Get the mapping from topic to node id to partitions with leader replicas on that
+    # node
+    tpln: Dict[str, Dict[int, List[int]]] = sort_partitions_by_leader_node(admin_client)
+
+    # Get a list of all node ids in the cluster
+    nodes: List[int] = [node.nodeId for node in admin_client._client.cluster.brokers()]
+
+    producer = KafkaProducer(
+        bootstrap_servers=bootstrap_servers,
+        client_id="test-loader-sender",
+        acks=0,
+        retries=0,
+    )
 
     keep_sending: bool = True
-
-    print(f"Sending messages at a rate of {round(1.0/interval,2)} per second")
 
     try:
 
         while keep_sending:
-            try:
-                payload: bytes = str(uuid.uuid4()).encode("utf-8")
-                for topic in topics:
-                    producer.send(topic, payload)
-            except KafkaTimeoutError:
-                print("Unable to fetch metadata")
+
+            payload: bytes = str(uuid.uuid4()).encode("utf-8")
+
+            for topic in topics:
+                # For each topic get a dict of nodeID mapping to list of partitions
+                # whose leader is on that node
+                node_partiton_leaders: Dict[int, List[int]] = tpln[topic]
+                multiplier: int = 1
+                nodeID: int
+                for nodeID in nodes:
+                    # For each node cycle through the partitions whose leaders on are
+                    # that node
+                    partition: int
+                    for partition in node_partiton_leaders[nodeID]:
+                        # For each partition send a number of messages depending on
+                        # how far down the node list we are
+                        for i in range(multiplier):
+                            try:
+                                producer.send(
+                                    topic=topic, value=payload, partition=partition
+                                )
+                            except KafkaTimeoutError:
+                                print("Unable to fetch metadata")
+                    # Send more messages to the next node in the list
+                    multiplier += 1
 
             time.sleep(interval)
 

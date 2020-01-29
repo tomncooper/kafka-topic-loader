@@ -5,7 +5,7 @@ description = "Creates and loads sample data into multiple kafka topics"
 authors = ["Thomas Cooper <tcooper@redhat.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 kafka-python = "^1.4.7"
 
 [tool.poetry.dev-dependencies]
