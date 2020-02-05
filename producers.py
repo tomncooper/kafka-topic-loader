@@ -1,6 +1,7 @@
 import uuid
 import time
 import random
+import logging
 
 from typing import List, Union, Dict
 
@@ -10,11 +11,14 @@ from kafka.errors import KafkaTimeoutError
 
 from topics import sort_partitions_by_leader_node
 
+LOG: logging.Logger = logging.getLogger("kafka-topic-loader.producers")
+
 
 def send_messages(
     bootstrap_servers: Union[str, List[str]], topics: List[str], interval: float
 ):
 
+    LOG.info("Creating Kafka Admin Client")
     admin_client: KafkaAdminClient = KafkaAdminClient(
         bootstrap_servers=bootstrap_servers, client_id="topic-loader-admin"
     )
@@ -24,8 +28,10 @@ def send_messages(
     tpln: Dict[str, Dict[int, List[int]]] = sort_partitions_by_leader_node(admin_client)
 
     # Get a list of all node ids in the cluster
+    LOG.info("Getting existing Kafka node list")
     nodes: List[int] = [node.nodeId for node in admin_client._client.cluster.brokers()]
 
+    LOG.info("Creating Kafka Producer")
     producer: KafkaProducer = KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         client_id="test-loader-sender",
@@ -34,6 +40,8 @@ def send_messages(
     )
 
     keep_sending: bool = True
+
+    LOG.info("Loading topics")
 
     try:
 
@@ -60,14 +68,13 @@ def send_messages(
                                     topic=topic, value=payload, partition=partition
                                 )
                             except KafkaTimeoutError:
-                                print("Unable to fetch metadata")
+                                LOG.error("Unable to fetch metadata")
                     # Send more messages to the next node in the list
                     multiplier += 1
 
             time.sleep(interval)
 
     except KeyboardInterrupt:
-        print("")
         print("Shutdown signal received. Closing producer...")
         producer.close(timeout=5)
         print("Producer closed.")

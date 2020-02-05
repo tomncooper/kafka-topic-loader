@@ -1,3 +1,5 @@
+import logging
+
 import datetime as dt
 
 from collections import defaultdict
@@ -6,6 +8,8 @@ from typing import List, Union, Set, Dict, DefaultDict
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.protocol.admin import Response
 from kafka.structs import PartitionMetadata
+
+LOG: logging.Logger = logging.getLogger("kafka-topic-loader.topics")
 
 
 def get_partition_metadata(
@@ -21,6 +25,8 @@ def sort_partitions_by_leader_node(
     """ This method produces a dictionary which maps from topic string to node id to a
     list of partition ids for those partitions whose lead replica is on that node.
     """
+
+    LOG.info("Sorting partitions by leader nodes")
 
     partition_metadata: PartitionMetadata = get_partition_metadata(admin_client)
 
@@ -52,9 +58,11 @@ def create_topics(
 
     topic_list: List[NewTopic] = []
 
-    print(
-        f"Creating {num_topics} topics each with {partitions_per_topic} partitions "
-        f"which are replicated {num_partition_replicas} times"
+    LOG.info(
+        "Creating %d topics each with %d partitions which are replicated %d times",
+        num_topics,
+        partitions_per_topic,
+        num_partition_replicas,
     )
 
     prefix: str = dt.datetime.utcnow().strftime("%H-%M")
@@ -82,7 +90,7 @@ def run_topic_creation(
     num_partition_replicas: int,
 ) -> List[str]:
 
-    print("Creating Admin Client")
+    LOG.info("Creating Kafka Admin Client")
     admin_client: KafkaAdminClient = KafkaAdminClient(
         bootstrap_servers=bootstrap_servers,
         client_id="topic-creator",
@@ -102,9 +110,9 @@ def run_topic_creation(
         if topic_result[2] is None:
             topic_list.append(topic_result[0])
         else:
-            print(f"Error in topic {topic_result[0]}")
+            LOG.error("Error in topic %s", topic_result[0])
 
-    print("Closing admin client")
+    LOG.info("Closing Kafka Admin Client")
     admin_client.close()
 
     return topic_list
