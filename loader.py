@@ -1,8 +1,10 @@
 import logging
 
+from typing import List
 from argparse import ArgumentParser, Namespace
 
-from topics import run_topic_creation
+from topics import run_topic_creation, get_all_topics
+from producers import send_messages
 
 LOG: logging.Logger = logging.getLogger("kafka-topic-loader.cli")
 
@@ -56,6 +58,24 @@ def create_parser() -> ArgumentParser:
 
     topics_parser.set_defaults(func=run_topics_creation)
 
+    subparsers = parser.add_subparsers()
+
+    producer_parser: ArgumentParser = subparsers.add_parser(
+        "producer",
+        prog="Load Kafka topics with messages",
+        help="Performs the message loading into the Kafka topics",
+    )
+
+    producer_parser.add_argument(
+        "-int",
+        "--interval",
+        type=float,
+        required=False,
+        help="Time interval in seconds between sending blocks",
+    )
+
+    producer_parser.set_defaults(func=run_producer)
+
     return parser
 
 
@@ -96,6 +116,14 @@ def run_topics_creation(args) -> None:
         args.partitions_per_topic,
         args.num_partition_replicas,
     )
+
+
+def run_producer(args) -> None:
+
+    topics: List[str] = get_all_topics(args.bootstrap_servers)
+
+    LOG.info("Sending messages to %d topics on the Kafka Cluster", len(topics))
+    send_messages(args.bootstrap_servers, topics, args.interval)
 
 
 if __name__ == "__main__":

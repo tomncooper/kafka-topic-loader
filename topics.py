@@ -41,9 +41,20 @@ def sort_partitions_by_leader_node(
     return tnp
 
 
-def get_all_topics(admin_client: KafkaAdminClient) -> List[str]:
+def get_all_topics(bootstrap_servers: str) -> List[str]:
 
+    LOG.debug("Creating Kafka Admin Client")
+    admin_client: KafkaAdminClient = KafkaAdminClient(
+        bootstrap_servers=bootstrap_servers,
+        client_id="topic-fetcher",
+        metadata_max_age_ms=30000,
+    )
+
+    LOG.info("Fetching topic names")
     topics: Set[str] = admin_client._client.cluster.topics(exclude_internal_topics=True)
+
+    LOG.debug("Creating Kafka Admin Client")
+    admin_client.close()
 
     return [topic for topic in topics if "__" not in topic]
 
@@ -90,7 +101,7 @@ def run_topic_creation(
     num_partition_replicas: int,
 ) -> List[str]:
 
-    LOG.info("Creating Kafka Admin Client")
+    LOG.debug("Creating Kafka Admin Client")
     admin_client: KafkaAdminClient = KafkaAdminClient(
         bootstrap_servers=bootstrap_servers,
         client_id="topic-creator",
@@ -112,7 +123,7 @@ def run_topic_creation(
         else:
             LOG.error("Error in topic %s", topic_result[0])
 
-    LOG.info("Closing Kafka Admin Client")
+    LOG.debug("Closing Kafka Admin Client")
     admin_client.close()
 
     return topic_list
