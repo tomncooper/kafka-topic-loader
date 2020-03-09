@@ -58,8 +58,6 @@ def create_parser() -> ArgumentParser:
 
     topics_parser.set_defaults(func=run_topics_creation)
 
-    subparsers = parser.add_subparsers()
-
     producer_parser: ArgumentParser = subparsers.add_parser(
         "producer",
         prog="Load Kafka topics with messages",
@@ -133,4 +131,7 @@ if __name__ == "__main__":
 
     MAIN_LOG: logging.Logger = create_main_logger(ARGS.debug)
 
-    ARGS.func(ARGS)
+    try:
+        ARGS.func(ARGS)
+    except AttributeError:
+        PARSER.error("Too few arguments, expected sub-command")
