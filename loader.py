@@ -71,6 +71,7 @@ def create_parser() -> ArgumentParser:
         "--interval",
         type=float,
         required=False,
+        default=0.1,
         help="Time interval in seconds between sending blocks",
     )
 

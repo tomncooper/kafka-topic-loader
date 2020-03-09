@@ -79,6 +79,7 @@ def create_topics(
     prefix: str = dt.datetime.utcnow().strftime("%H-%M")
 
     for i in range(num_topics):
+        LOG.debug("Creating topic %d", i)
         topic_list.append(
             NewTopic(
                 name=f"test-topic-{prefix}-{i}",
