@@ -3,6 +3,8 @@ import logging
 from typing import List
 from argparse import ArgumentParser, Namespace
 
+from kafka.errors import NoBrokersAvailable
+
 from topics import run_topic_creation, get_all_topics
 from producers import send_messages
 
@@ -108,12 +110,15 @@ def run_topics_creation(args) -> None:
 
     LOG.info("Running topic creation process...")
 
-    run_topic_creation(
-        args.bootstrap_servers,
-        args.num_topics,
-        args.partitions_per_topic,
-        args.num_partition_replicas,
-    )
+    try:
+        run_topic_creation(
+            args.bootstrap_servers,
+            args.num_topics,
+            args.partitions_per_topic,
+            args.num_partition_replicas,
+        )
+    except NoBrokersAvailable:
+        LOG.error("No brokers available at address: %s", args.bootstrap_servers)
 
 
 def run_producer(args) -> None:
