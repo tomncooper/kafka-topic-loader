@@ -7,6 +7,7 @@ authors = ["Thomas Cooper <tcooper@redhat.com>"]
 [tool.poetry.dependencies]
 python = "^3.6"
 kafka-python = "^1.4.7"
+setuptools = "^45.1.0"
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.11.1"
