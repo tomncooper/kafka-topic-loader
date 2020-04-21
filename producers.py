@@ -53,13 +53,23 @@ def send_messages(
                 # For each topic get a dict of node_id mapping to list of partitions
                 # whose leader is on that node
                 node_partiton_leaders: Dict[int, List[int]] = tpln[topic]
+                if not node_partiton_leaders:
+                    LOG.warning("No partition leaders for topic: %s", str(topic))
+                    continue
                 multiplier: int = 1
                 node_id: int
                 for node_id in nodes:
                     # For each node cycle through the partitions whose leaders on are
                     # that node
                     partition: int
-                    for partition in node_partiton_leaders[node_id]:
+                    try:
+                        partitions: List[int] = node_partiton_leaders[node_id]
+                    except KeyError as key_err:
+                        LOG.warning(
+                            "No partition leader information for node: %s", str(node_id)
+                        )
+                        continue
+                    for partition in partitions:
                         # For each partition send a number of messages depending on
                         # how far down the node list we are
                         for _ in range(multiplier):

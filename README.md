@@ -23,7 +23,7 @@ To create the test topics run the following command:
 
 ```bash
 $ poetry run python loader.py topics <kafka-bootstrap-addresses> topics \\
-    -pt <Number of topics to be created> \\
+    -nt <Number of topics to be created> \\
     -ppt <number of partitions per topic> \\
     -npr <number of replicas per partition>
 ```
@@ -40,7 +40,7 @@ $ poetry run python loader.py localhost:9094 topics -pt 100 -ppt 10 -npr 3
 To load the nodes of the Kafka cluster run the `producer` sub-command:
 
 ```bash
-$ poetry run python loader.py producer localhost:9094 -i 0.1
+$ poetry run python loader.py localhost:9094 producer -i 0.1
 ```
 
 The `-i/--interval` argument specifies the pause (in seconds) between sending
@@ -48,3 +48,22 @@ messages, so an interval of 0.1 seconds equates to a rate of 10 messages
 a second. 
 
 To speed up the loading, invoke the script in multiple terminals.
+
+### Loading a Minikube Kafka Cluster
+
+If you want to load a cluster inside minikube (using Strimzi) then add the following to your Strimzi `Kafka` custom resource:
+
+```yaml
+listeners:
+  plain: {}
+  tls: {}
+  external:
+    type: nodeport
+    tls: false
+```
+
+And run the following command to expose the service on your local machine:
+
+```
+$ kubectl port-forward svc/<kafk-cluster-name>-kafka-external-bootstrap 9094:9094 -n <namespace>
+```

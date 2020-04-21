@@ -100,6 +100,7 @@ def run_topic_creation(
     num_topics: int,
     partitions_per_topic: int,
     num_partition_replicas: int,
+    response_timeout: int = 30000,
 ) -> List[str]:
 
     LOG.debug("Creating Kafka Admin Client")
@@ -114,7 +115,7 @@ def run_topic_creation(
         num_topics,
         partitions_per_topic,
         num_partition_replicas,
-        timeout_ms=10000,
+        timeout_ms=response_timeout,
     )
 
     topic_list: List[str] = []
