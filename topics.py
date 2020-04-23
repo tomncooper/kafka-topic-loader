@@ -79,7 +79,7 @@ def create_topics(
     prefix: str = dt.datetime.utcnow().strftime("%H-%M")
 
     for i in range(num_topics):
-        LOG.debug("Creating topic %d", i)
+        LOG.debug("Creating topic object %d", i)
         topic_list.append(
             NewTopic(
                 name=f"test-topic-{prefix}-{i}",
@@ -88,6 +88,7 @@ def create_topics(
             )
         )
 
+    LOG.debug("Submitting topic batch to Kafka Admin Client for creation")
     response: Response = admin_client.create_topics(
         new_topics=topic_list, validate_only=False, timeout_ms=timeout_ms
     )
@@ -100,7 +101,7 @@ def run_topic_creation(
     num_topics: int,
     partitions_per_topic: int,
     num_partition_replicas: int,
-    response_timeout: int = 30000,
+    response_timeout: int = 60000,
 ) -> List[str]:
 
     LOG.debug("Creating Kafka Admin Client")

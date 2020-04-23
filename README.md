@@ -32,7 +32,7 @@ For example to create 100 topics with 10 partitions each which are replicated
 3 times:
 
 ```bash 
-$ poetry run python loader.py localhost:9094 topics -pt 100 -ppt 10 -npr 3
+$ poetry run python loader.py localhost:9094 topics -nt 100 -ppt 10 -npr 3
 ```
 
 ### Loading the topics
