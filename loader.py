@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace
 
 from kafka.errors import NoBrokersAvailable
 
-from topics import run_topic_creation, get_all_topics
+from topics import run_topic_creation
 from producers import send_messages
 
 LOG: logging.Logger = logging.getLogger("kafka-topic-loader.cli")
@@ -124,10 +124,7 @@ def run_topics_creation(args) -> None:
 
 def run_producer(args) -> None:
 
-    topics: List[str] = get_all_topics(args.bootstrap_servers)
-
-    LOG.info("Sending messages to %d topics on the Kafka Cluster", len(topics))
-    send_messages(args.bootstrap_servers, topics, args.interval)
+    send_messages(args.bootstrap_servers, args.interval)
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ LOG: logging.Logger = logging.getLogger("kafka-topic-loader.producers")
 
 
 def send_messages(
-    bootstrap_servers: Union[str, List[str]], topics: List[str], interval: float
+    bootstrap_servers: Union[str, List[str]], interval: float
 ):
 
     LOG.info("Creating Kafka Admin Client")
@@ -49,26 +49,17 @@ def send_messages(
 
             payload: bytes = str(uuid.uuid4()).encode("utf-8")
 
-            for topic in topics:
-                # For each topic get a dict of node_id mapping to list of partitions
-                # whose leader is on that node
-                node_partiton_leaders: Dict[int, List[int]] = tpln[topic]
-                if not node_partiton_leaders:
-                    LOG.warning("No partition leaders for topic: %s", str(topic))
-                    continue
+            topic: str
+            node_partiton_leaders: Dict[int, List[int]]
+
+            for topic, node_partiton_leaders in tpln.items():
                 multiplier: int = 1
                 node_id: int
-                for node_id in nodes:
+                partitions: List[int]
+                for node_id, partitions in node_partiton_leaders.items():
                     # For each node cycle through the partitions whose leaders on are
                     # that node
                     partition: int
-                    try:
-                        partitions: List[int] = node_partiton_leaders[node_id]
-                    except KeyError as key_err:
-                        LOG.warning(
-                            "No partition leader information for node: %s", str(node_id)
-                        )
-                        continue
                     for partition in partitions:
                         # For each partition send a number of messages depending on
                         # how far down the node list we are
