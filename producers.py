@@ -41,7 +41,7 @@ def send_messages(
 
     keep_sending: bool = True
 
-    LOG.info("Loading topics")
+    LOG.info("Loading %d topics", len(tpln.keys()))
 
     try:
 
@@ -54,9 +54,8 @@ def send_messages(
 
             for topic, node_partiton_leaders in tpln.items():
                 multiplier: int = 1
-                node_id: int
                 partitions: List[int]
-                for node_id, partitions in node_partiton_leaders.items():
+                for partitions in node_partiton_leaders.values():
                     # For each node cycle through the partitions whose leaders on are
                     # that node
                     partition: int

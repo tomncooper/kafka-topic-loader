@@ -67,7 +67,7 @@ def create_topics(
     num_partition_replicas: int,
     timeout_ms: int,
     max_batch: int = 50
-) -> Response:
+) -> List[Response]:
 
     batches: List[List[NewTopic]] = []
 
@@ -80,26 +80,39 @@ def create_topics(
 
     prefix: str = dt.datetime.utcnow().strftime("%H-%M")
 
-    LOG.info("Creating topic batches")
-    for i in range(math.ceil(num_topics/max_batch)):
-        topic_list: List[NewTopic] = []
-        for j in range(num_topics):
-            LOG.debug("Creating topic object %d for batch %d", j, i)
-            topic_list.append(
-                NewTopic(
-                    name=f"test-topic-{prefix}-{i}_{j}",
-                    num_partitions=partitions_per_topic,
-                    replication_factor=num_partition_replicas,
-                )
+    LOG.info("Creating topic objects")
+    topic_list: List[NewTopic] = []
+    for i in range(num_topics):
+        LOG.debug("Creating topic object %d", i)
+        topic_list.append(
+            NewTopic(
+                name=f"test-topic-{prefix}_{i}",
+                num_partitions=partitions_per_topic,
+                replication_factor=num_partition_replicas,
             )
+        )
 
-    for i, topic_batch in enumerate(batches):
-        LOG.info("Submitting topic batch %d to Kafka Admin Client for creation", i)
+    LOG.info("Batching topic objects")
+    topic_batches: List[List[NewTopic]] = []
+    topic_batch: List[NewTopic] = []
+    for i, topic in enumerate(topic_list):
+        if i % max_batch <= 0:
+            if topic_batch:
+                topic_batches.append(topic_batch)
+            topic_batch = []
+        topic_batch.append(topic)
+    topic_batches.append(topic_batch)
+
+    batch_creation_responses: List[Response] = []
+    for i, topic_batch in enumerate(topic_batches):
+        LOG.info("Submitting topic batch %d (size %d) to Kafka Admin Client for creation",
+                 i, len(topic_batch))
         response: Response = admin_client.create_topics(
             new_topics=topic_batch, validate_only=False, timeout_ms=timeout_ms
         )
+        batch_creation_responses.append(response)
 
-    return response
+    return batch_creation_responses
 
 
 def run_topic_creation(
@@ -117,7 +130,7 @@ def run_topic_creation(
         metadata_max_age_ms=response_timeout,
     )
 
-    response: Response = create_topics(
+    responses: List[Response] = create_topics(
         admin_client,
         num_topics,
         partitions_per_topic,
@@ -126,11 +139,12 @@ def run_topic_creation(
     )
 
     topic_list: List[str] = []
-    for topic_result in response.topic_errors:
-        if topic_result[2] is None:
-            topic_list.append(topic_result[0])
-        else:
-            LOG.error("Error in topic %s", topic_result[0])
+    for batch_response in responses:
+        for topic_error in batch_response.topic_errors:
+            if topic_error[2] is None:
+                topic_list.append(topic_error[0])
+            else:
+                LOG.error("Error in topic %s", topic_error[0])
 
     LOG.debug("Closing Kafka Admin Client")
     admin_client.close()
